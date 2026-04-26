@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+:root {
+  --background: #e5e7eb; /* Soft light grey base */
+  --foreground: #111827;
+  --momento-bg: transparent;
+  --momento-surface: rgba(255, 255, 255, 0.6);
+  --momento-border: rgba(255, 255, 255, 0.4);
+  --momento-text: #111827;
+  --momento-text-muted: #4b5563;
+  --momento-accent: #fb923c; /* Amber/Orange glow */
+  --momento-accent-hover: #f97316;
+  --momento-navy: #1B2A4A;
+  --momento-green: #10b981;
+  --momento-red: #ef4444;
+  --momento-yellow: #f59e0b;
+  --momento-blue: #3b82f6;
+}
+
+body {
+  background-color: var(--background);
+  background-image: 
+    radial-gradient(circle at 85% 15%, rgba(59, 130, 246, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 15% 65%, rgba(251, 146, 60, 0.15) 0%, transparent 40%);
+  background-attachment: fixed;
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-100%); }
+}
+
+@keyframes unfoldQR {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes momentUnlocked {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.1); filter: brightness(1.5); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slideLeft {
+  animation: slideLeft 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-unfoldQR {
+  animation: unfoldQR 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulseGlow {
+  animation: pulseGlow 2s infinite;
+}
+
+.animate-momentUnlocked {
+  animation: momentUnlocked 0.6s ease-in-out forwards;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #374151;
+  border-radius: 3px;
+}
+
+/* Fallback classes for older components */
+.glass-card {
+  background-color: var(--momento-surface);
+  border: 1px solid var(--momento-border);
+  border-radius: 16px;
+}
+
+.glass-card-hover {
+  transition: all 0.2s ease;
+}
+
+.glass-card-hover:hover {
+  border-color: var(--momento-accent);
+}

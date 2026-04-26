@@ -1,0 +1,22 @@
+{
+  "city": "Stuttgart",
+  "country": "DE",
+  "coordinates": { "lat": 48.7758, "lon": 9.1829 },
+  "thresholds": {
+    "merchantQuiet": 0.6,
+    "weatherCold": 12,
+    "rainProbability": 0.6,
+    "intentBrowsing": 0.7
+  },
+  "timing": {
+    "offerExpiryMinutes": 14,
+    "maxOffersPerDay": 3,
+    "cooldownMinutes": 120,
+    "quietWindowMinutes": 15
+  },
+  "demo": {
+    "defaultMerchantId": "cafe-mueller",
+    "simulationIntervalMs": 5000,
+    "autoAdvanceMs": 15000
+  }
+}
