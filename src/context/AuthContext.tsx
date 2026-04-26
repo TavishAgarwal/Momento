@@ -18,17 +18,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const DEMO_USERS: Record<string, User & { password: string }> = {
-  'mia@demo.momento': {
-    id: 'user-mia',
-    name: 'Mia Weber',
-    email: 'mia@demo.momento',
+  'consumer@demo.momento': {
+    id: 'user-consumer',
+    name: 'Demo Consumer',
+    email: 'consumer@demo.momento',
     role: 'consumer',
     password: 'demo',
   },
-  'hans@demo.momento': {
-    id: 'user-hans',
-    name: 'Hans Müller',
-    email: 'hans@demo.momento',
+  'merchant@demo.momento': {
+    id: 'user-merchant',
+    name: 'Demo Merchant',
+    email: 'merchant@demo.momento',
     role: 'merchant',
     merchantId: 'cafe-mueller',
     password: 'demo',

@@ -2,6 +2,7 @@
 // MOMENTO — On-Device Preference Model
 // Runs ONLY in localStorage — never sends data to server
 // Tracks interaction patterns to infer user receptivity
+// Uses DeviceMotion API for REAL mobility detection on mobile
 // ═══════════════════════════════════════════════════════════════
 import type { IntentState } from '../types';
 
@@ -49,9 +50,16 @@ interface ModelState {
 
 class OnDeviceModel {
   private state: ModelState;
+  private motionSamples: number[] = [];
+  private currentMobility: IntentState['mobility'] = 'stationary';
+  private motionListenerActive = false;
+  private lastPageVisibility: number = Date.now();
+  private sessionStartTime: number = Date.now();
 
   constructor() {
     this.state = this.load();
+    this.startMotionDetection();
+    this.trackFreeTime();
   }
 
   private load(): ModelState {
@@ -72,6 +80,114 @@ class OnDeviceModel {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
     } catch { /* ignore */ }
+  }
+
+  // ─── REAL Device Motion Detection ──────────────────────────
+  private startMotionDetection(): void {
+    if (this.motionListenerActive) return;
+    if (typeof window === 'undefined') return;
+
+    // Use DeviceMotion API (available on mobile browsers)
+    if ('DeviceMotionEvent' in window) {
+      const handleMotion = (event: DeviceMotionEvent) => {
+        const acc = event.accelerationIncludingGravity;
+        if (!acc || acc.x === null || acc.y === null || acc.z === null) return;
+
+        // Calculate total acceleration magnitude (minus gravity ~9.8)
+        const magnitude = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
+        const netAccel = Math.abs(magnitude - 9.81);
+
+        this.motionSamples.push(netAccel);
+        // Keep last 30 samples (~3 seconds at 100ms intervals)
+        if (this.motionSamples.length > 30) {
+          this.motionSamples = this.motionSamples.slice(-30);
+        }
+
+        // Classify mobility from acceleration pattern
+        this.classifyMobility();
+      };
+
+      // Request permission on iOS 13+
+      if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+        (DeviceMotionEvent as any).requestPermission()
+          .then((response: string) => {
+            if (response === 'granted') {
+              window.addEventListener('devicemotion', handleMotion);
+              this.motionListenerActive = true;
+            }
+          })
+          .catch(() => {
+            // Permission denied — fallback to time-based
+          });
+      } else {
+        window.addEventListener('devicemotion', handleMotion);
+        this.motionListenerActive = true;
+      }
+    }
+  }
+
+  private classifyMobility(): void {
+    if (this.motionSamples.length < 10) return;
+
+    const recent = this.motionSamples.slice(-20);
+    const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+    const variance = recent.reduce((sum, v) => sum + (v - avg) ** 2, 0) / recent.length;
+
+    // Classification thresholds based on accelerometer research:
+    // Stationary: avg < 0.5, low variance
+    // Walking: avg 0.5-3.0, moderate variance
+    // Transit (vehicle): avg > 1.0, high variance with periodic peaks
+    if (avg < 0.4 && variance < 0.2) {
+      this.currentMobility = 'stationary';
+    } else if (avg >= 0.4 && avg < 3.0 && variance < 4.0) {
+      this.currentMobility = 'walking';
+    } else if (avg >= 2.0 || variance >= 4.0) {
+      this.currentMobility = 'transit';
+    } else {
+      this.currentMobility = 'walking';
+    }
+  }
+
+  // ─── Free Time Estimation ─────────────────────────────────
+  private estimatedFreeMinutes: number = 15;
+
+  private trackFreeTime(): void {
+    if (typeof document === 'undefined') return;
+
+    this.sessionStartTime = Date.now();
+    this.lastPageVisibility = Date.now();
+
+    // Track page visibility — if user keeps app open, they likely have free time
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.lastPageVisibility = Date.now();
+      }
+    });
+
+    // Update free time estimate every 30 seconds
+    setInterval(() => {
+      const sessionMinutes = (Date.now() - this.sessionStartTime) / 60000;
+      const timeSinceVisible = (Date.now() - this.lastPageVisibility) / 60000;
+
+      if (document.visibilityState !== 'visible') {
+        // App in background — user is busy
+        this.estimatedFreeMinutes = Math.max(5, Math.round(15 - timeSinceVisible * 2));
+      } else if (sessionMinutes < 2) {
+        // Just opened — assume moderate free time
+        this.estimatedFreeMinutes = 15;
+      } else if (sessionMinutes < 10) {
+        // Browsing actively — user has free time
+        this.estimatedFreeMinutes = Math.round(20 + sessionMinutes);
+      } else {
+        // Long session — user clearly has time
+        this.estimatedFreeMinutes = Math.min(60, Math.round(25 + sessionMinutes * 0.5));
+      }
+
+      // Mobility affects free time — transit means less free time
+      if (this.currentMobility === 'transit') {
+        this.estimatedFreeMinutes = Math.min(this.estimatedFreeMinutes, 10);
+      }
+    }, 30000);
   }
 
   recordInteraction(type: 'view' | 'accept' | 'dismiss' | 'expire', durationMs?: number): void {
@@ -96,21 +212,28 @@ class OnDeviceModel {
 
   getIntent(): IntentState {
     const receptivity = Math.min(1, Math.max(0, this.state.acceptRate + 0.3));
-    const now = new Date();
-    const hour = now.getHours();
 
-    let mobility: IntentState['mobility'] = 'stationary';
-    if (hour >= 7 && hour <= 9) mobility = 'transit';
-    else if (hour >= 10 && hour <= 18) mobility = 'walking';
-    else if (hour >= 17 && hour <= 20) mobility = 'walking';
+    // Use REAL sensor-based mobility if available, else fall back to time-based
+    let mobility = this.currentMobility;
+    if (!this.motionListenerActive) {
+      // Fallback: time-based heuristic
+      const hour = new Date().getHours();
+      if (hour >= 7 && hour <= 9) mobility = 'transit';
+      else if (hour >= 10 && hour <= 20) mobility = 'walking';
+      else mobility = 'stationary';
+    }
 
-    let freeMinutes = 15;
-    if (mobility === 'transit') freeMinutes = 5;
-    else if (mobility === 'walking') freeMinutes = 20;
+    // Use REAL free time estimation
+    const freeMinutes = this.estimatedFreeMinutes;
 
     const state: IntentState['state'] = receptivity >= 0.7 ? 'receptive-browsing' : receptivity >= 0.4 ? 'passive' : 'busy';
 
     return { state, receptivity, mobility, freeMinutes };
+  }
+
+  /** Get the raw mobility source for UI display */
+  getMobilitySource(): 'sensor' | 'estimated' {
+    return this.motionListenerActive ? 'sensor' : 'estimated';
   }
 
   generateHeadline(tone: string): string {
@@ -125,6 +248,8 @@ class OnDeviceModel {
       avgEngagementMs: this.state.avgEngagementMs,
       preferredCategories: this.state.preferredCategories,
       lastUpdate: this.state.lastUpdate,
+      mobilitySource: this.getMobilitySource(),
+      currentMobility: this.currentMobility,
     };
   }
 

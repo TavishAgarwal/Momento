@@ -51,7 +51,7 @@ export default function MerchantSettings() {
             👨🏻‍🍳
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900">{user?.name || 'Hans Müller'}</h1>
+            <h1 className="text-lg font-bold text-gray-900">{user?.name || 'Demo Merchant'}</h1>
             <p className="text-sm text-gray-500">Café Müller · Merchant Account</p>
             <span className="inline-block mt-1 bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full">
               Active

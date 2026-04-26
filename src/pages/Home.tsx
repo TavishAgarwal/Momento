@@ -12,6 +12,7 @@ import type { NearbyPlace } from '../services/api';
 import { onDeviceModel } from '../services/onDeviceModel';
 import { locationService } from '../services/locationService';
 import { useLocation } from 'react-router-dom';
+
 import type { Offer } from '../types';
 
 export default function Home() {
@@ -28,6 +29,8 @@ export default function Home() {
   const [greeting, setGreeting] = useState({ city: '', district: '' });
   const [placesLoading, setPlacesLoading] = useState(false);
   const [liveWeather, setLiveWeather] = useState<any>(null);
+
+  const [intentState, setIntentState] = useState(onDeviceModel.getIntent());
   const locationAcquiredRef = useRef(false);
   const routeLocation = useLocation();
   const isDemo = new URLSearchParams(routeLocation.search).get('demo') === 'true';
@@ -153,30 +156,15 @@ export default function Home() {
 
     acquireLocation();
 
-    // Service Worker: unregister stale workers, then register fresh
-    if ('serviceWorker' in navigator) {
-      // First, clear any old service workers that may be serving cached content
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (const reg of registrations) {
-          reg.unregister().then(() => console.log('[Home] 🧹 Unregistered old SW'));
-        }
-        // Then register the new one
-        navigator.serviceWorker.register('/sw.js').then((reg) => {
-          console.log('[Home] ✅ Service Worker registered:', reg.scope);
-          // Force the new service worker to take over immediately
-          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }).catch((err) => {
-          console.warn('[Home] ❌ SW registration failed:', err);
-        });
-      });
-    }
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then((perm) => {
-        console.log('[Home] 🔔 Notification permission:', perm);
-      });
-    }
+    // ─── Update intent state every 5 seconds ─────────────
+    const intentInterval = setInterval(() => {
+      setIntentState(onDeviceModel.getIntent());
+    }, 5000);
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      clearInterval(intentInterval);
+    };
   }, []);
 
   // Auto-generate only after user has been on the page for a while (not on first login)
@@ -235,17 +223,23 @@ export default function Home() {
       onDeviceModel.recordInteraction('view');
 
       // Push notification via Service Worker → appears in phone notification panel
-      if ('Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker?.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: 'SHOW_NOTIFICATION',
-          payload: {
-            title: 'MOMENTO',
+      if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification('MOMENTO', {
             body: offer.contextPrompt || `${offer.merchantName}: ${offer.params?.discount}% off your next order`,
             icon: '/icon-192.png',
+            badge: '/icon-192.png',
             image: getMoodyImage(),
             tag: `momento-offer-${offer.id}`,
+            vibrate: [200, 100, 200],
+            renotify: true,
+            requireInteraction: true,
+            actions: [
+              { action: 'claim', title: '🎯 Claim Offer' },
+              { action: 'dismiss', title: 'Dismiss' }
+            ],
             data: { offerId: offer.id, merchantName: offer.merchantName }
-          }
+          } as any);
         });
       }
     } catch (err: any) {
@@ -267,7 +261,7 @@ export default function Home() {
 
   return (
     <div className="space-y-6 animate-fade-in relative min-h-screen pb-20">
-      
+
       {/* 🔴 IN-APP CUSTOM NOTIFICATION OVERLAY */}
       {currentOffer && !showQR && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pointer-events-none animate-slide-down">
@@ -346,23 +340,43 @@ export default function Home() {
         </div>
       )}
 
-      {/* Activity Context */}
+      {/* Activity Context — REAL sensor data */}
       {!currentOffer && !isLoading && !isGenerating && !showUnlocked && (
         <div className="bg-white/70 backdrop-blur-md rounded-[24px] p-4 flex items-center justify-between border border-white/60 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              intentState.mobility === 'walking' ? 'bg-green-100 text-green-600' :
+              intentState.mobility === 'transit' ? 'bg-purple-100 text-purple-600' :
+              intentState.mobility === 'cycling' ? 'bg-blue-100 text-blue-600' :
+              'bg-gray-100 text-gray-600'
+            }`}>
+              {intentState.mobility === 'walking' ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              ) : intentState.mobility === 'transit' ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              )}
             </div>
             <div>
-              <div className="font-semibold text-gray-900 capitalize">{intent.mobility || 'Walking'}</div>
-              <div className="text-xs text-gray-500 font-medium">Free: {intent.freeMinutes || 20}m</div>
+              <div className="font-semibold text-gray-900 capitalize flex items-center gap-1.5">
+                {intentState.mobility}
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  onDeviceModel.getMobilitySource() === 'sensor' ? 'bg-green-500' : 'bg-amber-400'
+                }`} title={onDeviceModel.getMobilitySource() === 'sensor' ? 'Live sensor data' : 'Estimated'} />
+              </div>
+              <div className="text-xs text-gray-500 font-medium">Free: {intentState.freeMinutes}m</div>
             </div>
           </div>
           {nearbyPlaces.length > 0 && (
             <div className="text-right">
-              <div className="text-xs text-gray-700 font-semibold">{nearbyPlaces[0]?.name}</div>
+              <div className="text-xs text-gray-700 font-semibold truncate max-w-[140px]">{nearbyPlaces[0]?.name}</div>
               <div className="text-[10px] text-gray-400 font-medium">{nearbyPlaces[0]?.distance}m away · {nearbyPlaces.length} spots</div>
             </div>
           )}

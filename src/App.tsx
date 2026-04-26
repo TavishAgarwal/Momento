@@ -15,6 +15,8 @@ import Onboarding from './pages/Onboarding';
 import MerchantSetup from './pages/MerchantSetup';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+import DemoCommandPanel from './components/DemoCommandPanel';
+import PushNotificationManager from './components/PushNotificationManager';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -126,6 +128,8 @@ export default function App() {
         <AuthProvider>
           <OfferProvider>
             <AppRoutes />
+            <DemoCommandPanel />
+            <PushNotificationManager />
           </OfferProvider>
         </AuthProvider>
       </BrowserRouter>

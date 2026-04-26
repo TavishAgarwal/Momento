@@ -20,7 +20,7 @@ export default function MerchantOrders() {
   // Generate simulated order data
   const [orders] = useState<RedemptionOrder[]>(() => {
     const products = ['Cappuccino', 'Flat White', 'Croissant', 'Breakfast Set', 'Latte Macchiato', 'Espresso'];
-    const names = ['Mia Weber', 'Luca Schneider', 'Sophie Bauer', 'Max Fischer', 'Anna Hoffmann', 'Tom Klein'];
+    const names = ['Demo Consumer', 'Luca Schneider', 'Sophie Bauer', 'Max Fischer', 'Anna Hoffmann', 'Tom Klein'];
     const now = Date.now();
     return Array.from({ length: 8 }, (_, i) => ({
       id: `ORD-${(now - i * 3600000).toString(36).toUpperCase().slice(-6)}`,

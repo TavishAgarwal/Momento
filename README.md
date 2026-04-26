@@ -118,8 +118,8 @@ MOMENTO aligns incentives perfectly. Merchants pay **no subscription fees**. The
    npm run dev
    ```
 4. **View the App**
-   - Consumer experience: [https://localhost:5173/login](https://localhost:5173/login) → Quick Demo login as **Mia Weber**
-   - Merchant dashboard: Login as **Hans Müller**
+   - Consumer experience: [https://localhost:5173/login](https://localhost:5173/login) → Quick Demo login as **Demo Consumer**
+   - Merchant dashboard: Login as **Demo Merchant**
    - Automated 90-second demo: [https://localhost:5173/demo](https://localhost:5173/demo)
 
 ## Project Structure

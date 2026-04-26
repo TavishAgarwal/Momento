@@ -83,19 +83,19 @@ export default function Login() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => quickLogin('mia@demo.momento')}
+              onClick={() => quickLogin('consumer@demo.momento')}
               className="bg-white/70 backdrop-blur-md border border-white/60 py-4 rounded-2xl text-center hover:border-amber-400 hover:shadow-md transition-all shadow-sm group"
             >
               <div className="text-2xl mb-1.5 group-hover:scale-110 transition-transform">👩🏼</div>
-              <div className="text-sm text-gray-900 font-semibold">Mia Weber</div>
+              <div className="text-sm text-gray-900 font-semibold">Demo Consumer</div>
               <div className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mt-0.5">Consumer</div>
             </button>
             <button
-              onClick={() => quickLogin('hans@demo.momento')}
+              onClick={() => quickLogin('merchant@demo.momento')}
               className="bg-white/70 backdrop-blur-md border border-white/60 py-4 rounded-2xl text-center hover:border-amber-400 hover:shadow-md transition-all shadow-sm group"
             >
               <div className="text-2xl mb-1.5 group-hover:scale-110 transition-transform">👨🏻‍🍳</div>
-              <div className="text-sm text-gray-900 font-semibold">Hans Müller</div>
+              <div className="text-sm text-gray-900 font-semibold">Demo Merchant</div>
               <div className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mt-0.5">Merchant</div>
             </button>
           </div>

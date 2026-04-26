@@ -7,7 +7,7 @@ import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { offerRouter } from './routes/offer.js';
 import { payoneRouter } from './routes/payone.js';
-import { pushRouter } from './routes/push.js';
+import { pushRouter, initPushIO } from './routes/push.js';
 import { contextRouter } from './routes/context.js';
 import { merchantRouter } from './routes/merchant.js';
 import { redemptionRouter } from './routes/redemption.js';
@@ -51,6 +51,7 @@ app.use('/api/places', placesRouter);
 
 // Initialise merchant socket with io instance
 merchantSocket.init(io);
+initPushIO(io);
 
 // Socket.io connections
 io.on('connection', (socket) => {
@@ -67,8 +68,19 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3001;
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`[MOMENTO] Server running on http://localhost:${PORT}`);
   console.log(`[MOMENTO] API Key: ${process.env.OPENAI_API_KEY ? '✓ Set' : '✗ Missing'}`);
   console.log(`[MOMENTO] Weather Key: ${process.env.OPENWEATHERMAP_API_KEY ? '✓ Set' : '✗ Missing'}`);
+  // Print LAN IP for mobile access
+  import('os').then(os => {
+    const nets = os.networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name] || []) {
+        if (net.family === 'IPv4' && !net.internal) {
+          console.log(`[MOMENTO] 📱 Mobile access: http://${net.address}:${PORT}`);
+        }
+      }
+    }
+  });
 });

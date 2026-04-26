@@ -60,7 +60,7 @@ export default function MerchantScanner() {
       merchantName: user?.name || 'Café Müller',
       discount: Math.floor(Math.random() * 15) + 5,
       product: ['Cappuccino', 'Latte', 'Croissant', 'Breakfast Set'][Math.floor(Math.random() * 4)],
-      customerName: 'Mia Weber',
+      customerName: 'Demo Consumer',
       timestamp: Date.now(),
     };
     setScannedResult(offer);
